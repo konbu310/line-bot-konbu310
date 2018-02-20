@@ -38,10 +38,14 @@ const handleEvent = (event) => {
     return Promise.resolve(null)
   }
 
-  if (/^[d,D][n ]?([0-9]*)$/.test(event.message.text)) {
+  let userMessage = event.message.text
+  if (/^[d,D][n ]?([0-9]*)$/.test(userMessage)) {
     let code = RegExp.$1
     if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
     addPoint(event.replyToken, code)
+  } else if (/つかれた|疲れた|きつい|つらい|辛い|きっつ/.test(userMessage)) {
+    let fightMessageList = ['おつかれ！', 'よく頑張った！', 'ゆっくり休めよ！', '無理すんなよ！']
+    return replyText(event.replyToken, fightMessageList.sample)
   } else {
     return Promise.resolve(null)
   }
