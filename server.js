@@ -27,31 +27,18 @@ app.post('/talk', line.middleware(config), (req, res) => {
 
 const client = new line.Client(config)
 
-const replyText = (text, token) => {
-  return client.replyMessage(token, {
-    type: 'text',
-    text: text
-  })
-}
-
-const handleEvent = (event) => {
+function handleEvent (event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null)
-  }
-
-  let userMessage = event.message.text
-  switch (true) {
-    case /^[d,D]n[ ]?([0-9]*)$/.test(userMessage):
-      let code = RegExp.$1
-      addPoint(code, event.replyToken)
-      break
-    default:
-      return Promise.resolve(null)
+  } else if (/^[d,D]n[ ]?([0-9]*)$/.test(event.message.text)) {
+    addPoint(RegExp.$1, event.replyToken)
+  } else {
+    return Promise.resolve(null)
   }
 }
 
-const addPoint = async (code, token) => {
-  if (code.length !== 12) { return 'コードは12桁で入力してください。' }
+async function addPoint (code, token) {
+  if (code.length !== 12) { return client.replyMessage(token, 'コードは12桁で入力してください。') }
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
   await page.goto(`https://www.dan-on.com/jp-ja/my-danpoints?code=${code}`, {waitUntil: 'domcontentloaded'})
@@ -68,7 +55,7 @@ const addPoint = async (code, token) => {
     return 'ポイントが間違っているか、使用済みの可能性があります。'
   })
   await browser.close()
-  return replyText(result, token)
+  return client.replyMessage(token, result)
 }
 
 app.listen(PORT)
