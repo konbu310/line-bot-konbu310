@@ -1,7 +1,7 @@
 const express = require('express')
 const line = require('@line/bot-sdk')
+const puppeteer = require('puppeteer')
 const PORT = process.env.PORT || 3000
-const Danon = require('./Danon.js')
 
 const config = {
   channelAccessToken: 'S6jOttKiR5kfz6HxunhVm41qErLs/IsKDbbO2/lJ7zRyepQgcMDQOJyb6Mb4jE4MGguTDyFDAFu4rQ4BHnb/f+JEwByqh/gZqu9sOo2KUyfNyjkAX0V/OKmvoUvp1U1r6YcV5Si2ump4X8VpEksfzAdB04t89/1O/w1cDnyilFU=',
@@ -11,13 +11,28 @@ const config = {
 const app = express()
 
 app.post('/talk', line.middleware(config), (req, res) => {
-  console.log(req.body.events)
-  Promise
-    .all(req.body.events.map(handleEvent))
-    .then((result) => res.json(result))
+  // req.body.events should be an array of events
+  if (!Array.isArray(req.body.events)) {
+    return res.status(500).end()
+  }
+
+  // handle events separately
+  Promise.all(req.body.events.map(handleEvent))
+    .then(() => res.end())
+    .catch((err) => {
+      console.error(err)
+      res.status(500).end()
+    })
 })
 
 const client = new line.Client(config)
+
+const replyText = (text, token) => {
+  return client.replyMessage(token, {
+    type: 'text',
+    text: text
+  })
+}
 
 const handleEvent = (event) => {
   if (event.type !== 'message' || event.message.type !== 'text') {
@@ -26,22 +41,34 @@ const handleEvent = (event) => {
 
   let userMessage = event.message.text
   switch (true) {
-    // ダノンポイント関係
     case /^[d,D]n[ ]?([0-9]*)$/.test(userMessage):
       let code = RegExp.$1
-      let result = Danon.addPoint(code)
-      sendMessage(result, event.replyToken)
+      addPoint(code, event.replyToken)
       break
     default:
       return Promise.resolve(null)
   }
 }
 
-const sendMessage = (message, replyToken) => {
-  return client.replyMessage(replyToken, {
-    type: 'text',
-    text: message
+const addPoint = async (code, token) => {
+  if (code.length !== 12) { return 'コードは12桁で入力してください。' }
+  const browser = await puppeteer.launch()
+  const page = await browser.newPage()
+  await page.goto(`https://www.dan-on.com/jp-ja/my-danpoints?code=${code}`, {waitUntil: 'domcontentloaded'})
+  await page.type('#signin-email', 'serendip001@icloud.com')
+  await page.type('#signin-password', 'dp4530')
+  await page.click('div.box__footer >  div.check-form > button[type="submit"]')
+  await page.waitFor(8000)
+  const result = await page.content().then(content => {
+    let successFlag = /<header class="popin__header">/
+    let pointMatch = /<strong>(\d*)<\/strong> ポイント<\/span>/
+    if (successFlag.test(content)) {
+      return `現在のポイントは、${content.match(pointMatch)[1]} です。`
+    }
+    return 'ポイントが間違っているか、使用済みの可能性があります。'
   })
+  await browser.close()
+  return replyText(result, token)
 }
 
 app.listen(PORT)
