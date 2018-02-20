@@ -43,7 +43,7 @@ const handleEvent = (event) => {
     if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
     addPoint(event.replyToken, code)
   } else {
-    return replyText(event.replyToken, 'エラーが発生しました。')
+    return Promise.resolve(null)
   }
 }
 
