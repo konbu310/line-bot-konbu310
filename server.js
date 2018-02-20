@@ -42,6 +42,8 @@ const handleEvent = (event) => {
     let code = RegExp.$1
     if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
     addPoint(event.replyToken, code)
+  } else {
+    return replyText(event.replyToken, 'エラーが発生しました。')
   }
 }
 
@@ -62,7 +64,7 @@ const addPoint = async (token, code) => {
     return 'ポイントが間違っているか、使用済みの可能性があります。'
   })
   await browser.close()
-  replyText(token, resultMessage)
+  return replyText(token, resultMessage)
 }
 
 app.listen(PORT)
