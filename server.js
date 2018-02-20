@@ -42,7 +42,7 @@ const handleEvent = (event) => {
   if (/^[d,D][n ]?([0-9]*)$/.test(userMessage)) {
     let code = RegExp.$1
     if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
-    addPoint(event.replyToken, code)
+    return addPoint(event.replyToken, code)
   } else {
     return Promise.resolve(null)
   }
@@ -60,7 +60,7 @@ const addPoint = async (token, code) => {
     let successFlag = /<header class="popin__header">/
     let pointMatch = /<strong>(\d*)<\/strong> ポイント<\/span>/
     if (successFlag.test(content)) {
-      return `現在のポイントは、${content.match(pointMatch)[1]} です。`
+      return `現在のポイントは ${content.match(pointMatch)[1]} です。`
     }
     return 'ポイントが間違っているか、使用済みの可能性があります。'
   })
