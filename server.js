@@ -27,17 +27,19 @@ app.post('/talk', line.middleware(config), (req, res) => {
 
 const client = new line.Client(config)
 
-function handleEvent (event) {
+const handleEvent = (event) => {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null)
-  } else if (/^[d,D]n[ ]?([0-9]*)$/.test(event.message.text)) {
-    addPoint(RegExp.$1, event.replyToken)
-  } else {
-    return Promise.resolve(null)
   }
+
+  // create a echoing text message
+  const echo = { type: 'text', text: event.message.text }
+
+  // use reply API
+  return client.replyMessage(event.replyToken, echo)
 }
 
-async function addPoint (code, token) {
+const addPoint = async (code, token) => {
   if (code.length !== 12) { return client.replyMessage(token, 'コードは12桁で入力してください。') }
   const browser = await puppeteer.launch()
   const page = await browser.newPage()
@@ -60,3 +62,8 @@ async function addPoint (code, token) {
 
 app.listen(PORT)
 console.log(`Server running at ${PORT}`)
+
+/*
+/^[d,D]n[ ]?([0-9]*)$/.test(event.message.text))
+addPoint(RegExp.$1, event.replyToken)
+*/
