@@ -1,7 +1,7 @@
 const express = require('express')
 const line = require('@line/bot-sdk')
 const PORT = process.env.PORT || 3000
-const Danon = require('./Danon')
+const Danon = require('./Danon.js')
 
 const config = {
   channelAccessToken: 'S6jOttKiR5kfz6HxunhVm41qErLs/IsKDbbO2/lJ7zRyepQgcMDQOJyb6Mb4jE4MGguTDyFDAFu4rQ4BHnb/f+JEwByqh/gZqu9sOo2KUyfNyjkAX0V/OKmvoUvp1U1r6YcV5Si2ump4X8VpEksfzAdB04t89/1O/w1cDnyilFU=',

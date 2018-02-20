@@ -21,4 +21,6 @@ const addPoint = async (code) => {
   return result
 }
 
-export default addPoint()
+module.exports = {
+  'addPoint': addPoint
+}
