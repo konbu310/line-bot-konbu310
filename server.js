@@ -27,8 +27,12 @@ app.post('/talk', line.middleware(config), (req, res) => {
 
 const client = new line.Client(config)
 
-const replyText = (message, token) => {
-  return client.replyMessage(token, message)
+const replyText = (token, message) => {
+  return client.replyMessage(token,
+    {
+      type: 'text',
+      text: message
+    })
 }
 
 const handleEvent = (event) => {
@@ -38,8 +42,8 @@ const handleEvent = (event) => {
 
   if (/^[d,D][n ]?([0-9]*)$/.test(event.message.text)) {
     let code = RegExp.$1
-    const echo = { type: 'text', text: code }
-    replyText(echo, event.replyToken)
+    if (code.length !== 12) { replyText('コードは12桁で入力してください。', event.replyToken) }
+    replyText(code, event.replyToken)
   }
 }
 
