@@ -42,7 +42,7 @@ const handleEvent = (event) => {
 
   if (/^[d,D][n ]?([0-9]*)$/.test(event.message.text)) {
     let code = RegExp.$1
-    if (code.length !== 12) { replyText(event.replyToken, 'コードは12桁で入力してください。') }
+    if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
     replyText(event.replyToken, code)
   }
 }
