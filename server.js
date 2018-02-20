@@ -27,16 +27,20 @@ app.post('/talk', line.middleware(config), (req, res) => {
 
 const client = new line.Client(config)
 
+const replyText = (message, token) => {
+  return client.replyMessage(token, message)
+}
+
 const handleEvent = (event) => {
   if (event.type !== 'message' || event.message.type !== 'text') {
     return Promise.resolve(null)
   }
 
-  // create a echoing text message
-  const echo = { type: 'text', text: event.message.text }
-
-  // use reply API
-  return client.replyMessage(event.replyToken, echo)
+  if (/^[d,D][n ]?([0-9]*)$/.test(event.message.text)) {
+    let code = RegExp.$1
+    const echo = { type: 'text', text: code }
+    replyText(echo, event.replyToken)
+  }
 }
 
 const addPoint = async (code, token) => {
