@@ -52,9 +52,13 @@ const addPoint = async (token, code) => {
   const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] })
   const page = await browser.newPage()
   await page.goto(`https://www.dan-on.com/jp-ja/my-danpoints?code=${code}`, {waitUntil: 'domcontentloaded'})
-  await page.type('#signin-email', process.env.USER_NAME)
-  await page.type('#signin-password', process.env.PASSWORD)
-  await page.click('div.box__footer >  div.check-form > button[type="submit"]')
+  try {
+    await page.type('#signin-email', process.env.USER_NAME)
+    await page.type('#signin-password', process.env.PASSWORD)
+    await page.click('div.box__footer >  div.check-form > button[type="submit"]')
+  } catch (err) {
+    return replyText(token, err.name + ': ' + err.message)
+  }
   await page.waitFor(8000)
   const resultMessage = await page.content().then(content => {
     let successFlag = /<header class="popin__header">/
