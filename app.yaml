@@ -1,0 +1,5 @@
+runtime: nodejs
+env: flex
+threadsafe: true
+includes:
+  - secret.yaml
