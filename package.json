@@ -4,7 +4,7 @@
 	"main": "index.js",
 	"license": "MIT",
 	"scripts": {
-		"start": "node ./server.js"
+		"start": "node server.js"
 	},
 	"dependencies": {
 		"@line/bot-sdk": "^6.2.1",

@@ -1,5 +1,4 @@
-runtime: nodejs
-env: flex
-threadsafe: true
+runtime: nodejs8
+instance_class: F4_1G
 includes:
   - secret.yaml
