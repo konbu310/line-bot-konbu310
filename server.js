@@ -93,15 +93,15 @@ const addPoint = async code => {
 				RESULT_MESSAGE = `コードが間違ってない？\nもしかしたら使用済みかも(;_:)`;
 			} else if (SUCCESS_CHECK.test(content)) {
 				RESULT_POINT = content.match(POINT_CHECK)[1];
-				RESULT_MESSAGE = `ポイントを追加したよ！\n今のポイントは、${RESULT_POINT}だよ(´ε｀ )`;
+        RESULT_MESSAGE = `ポイントを追加したよ！\n今のポイントは、${RESULT_POINT}だよ(´ε｀ )`;
+        await pushMessage(RESULT_MESSAGE)
 			}
 		});
 	} catch (err) {
 		console.log(err);
-		RESULT_MESSAGE = "問題が起きてるみたい(´・ω・`)";
+    RESULT_MESSAGE = "問題が起きてるみたい(´・ω・`)";
+    await pushMessage(RESULT_MESSAGE);
 	}
-
-	await pushMessage(RESULT_MESSAGE);
 
 	await browser.close();
 
