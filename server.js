@@ -1,76 +1,114 @@
-const express = require('express')
-const line = require('@line/bot-sdk')
-const puppeteer = require('puppeteer')
-const PORT = process.env.PORT || 3000
+const express = require("express");
+const line = require("@line/bot-sdk");
+const puppeteer = require("puppeteer");
 
 const config = {
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
-  channelSecret: process.env.CHANNEL_SECRET
-}
+	channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
+	channelSecret: process.env.CHANNEL_SECRET
+};
 
-const app = express()
+const client = new line.Client(config);
 
-app.post('/talk', line.middleware(config), (req, res) => {
-  if (!Array.isArray(req.body.events)) {
-    return res.status(500).end()
+const app = express();
+
+let RESULT_MESSAGE;
+let RESULT_POINT;
+const FAILURE_CHECK = /<p class="dn-icon-delete">/;
+const SUCCESS_CHECK = /<p class="dn-icon-check">/;
+const POINT_CHECK = /<strong>(\d*)<\/strong> ポイント<\/span>/;
+
+app.get("/", (req, res) => {
+	return res.send("問題なく稼働中です！");
+});
+
+app.post("/talk", line.middleware(config), (req, res) => {
+	if (!Array.isArray(req.body.events)) {
+		return res.status(500).end();
+	}
+
+	Promise.all(req.body.events.map(handleEvent))
+		.then(() => res.end())
+		.catch(err => {
+			console.error(err);
+			res.status(500).end();
+		});
+});
+
+const pushMessage = async message => {
+	await client.pushMessage(process.env.GROUP_ID, {
+		type: "text",
+		text: message
+	});
+};
+
+const handleEvent = async event => {
+	if (event.type !== "message" || event.message.type !== "text") {
+		return Promise.resolve(null);
+	}
+
+	if (/^(?:d|D|ダノン){1}([0-9]+)$/.test(event.message.text)) {
+		if (RegExp.$1.length !== 12) {
+			await pushMessage("コードは12桁だよ！\n間違ってないか確認して！");
+			return Promise.resolve(null);
+		}
+		await addPoint(RegExp.$1);
+	} else {
+		return Promise.resolve(null);
+	}
+
+	return Promise.resolve(null);
+};
+
+const addPoint = async code => {
+	await pushMessage("ポイント追加するね！");
+
+	const browser = await puppeteer.launch({
+		args: ["--no-sandbox"],
+		ignoreHTTPSErrors: true
+	});
+
+	const page = await browser.newPage();
+
+	try {
+		await page.goto(`https://www.dan-on.com/jp-ja/my-danpoints?code=${code}`, {
+			waitUntil: "domcontentloaded"
+		});
+
+		await page.waitFor(2 * 1000);
+
+		await page.type("#signin-email", process.env.DANON_USER_NAME);
+		await page.type("#signin-password", process.env.DANON_PASSWORD);
+
+		await pushMessage("ポチポチ...\nもうちょっと待ってねφ(..)");
+
+		await page.click(
+			"#connect_form > div.box__footer.pushlog-form_cta > div > button"
+		);
+
+		await page.waitFor(10 * 1000);
+
+		await page.content().then(content => {
+			if (FAILURE_CHECK.test(content)) {
+				RESULT_POINT = content.match(POINT_CHECK)[1];
+        RESULT_MESSAGE = `コードが間違ってない？\nもしかしたら使用済みかも(;_:)`;
+        await pushMessage(RESULT_MESSAGE)
+			} else if (SUCCESS_CHECK.test(content)) {
+				RESULT_POINT = content.match(POINT_CHECK)[1];
+        RESULT_MESSAGE = `ポイントを追加したよ！\n今のポイントは、${RESULT_POINT}だよ(´ε｀ )`;
+        await pushMessage(RESULT_MESSAGE)
+			}
+		});
+	} catch (err) {
+		console.log(err);
+    RESULT_MESSAGE = "問題が起きてるみたい(´・ω・`)";
+    await pushMessage(RESULT_MESSAGE);
   }
+  
+	await browser.close();
 
-  Promise.all(req.body.events.map(handleEvent))
-    .then(() => res.end())
-    .catch((err) => {
-      console.error(err)
-      res.status(500).end()
-    })
-})
+	return Promise.resolve(null);
+};
 
-const client = new line.Client(config)
-
-const replyText = (token, message) => {
-  return client.replyMessage(token,
-    {
-      type: 'text',
-      text: message
-    })
-}
-
-const handleEvent = (event) => {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    return Promise.resolve(null)
-  }
-
-  let userMessage = event.message.text
-  if (/^[d,D][n ]?([0-9]*)$/.test(userMessage)) {
-    let code = RegExp.$1
-    if (code.length !== 12) { return replyText(event.replyToken, 'コードは12桁で入力してください。') }
-    return addPoint(event.replyToken, code)
-  } else {
-    return Promise.resolve(null)
-  }
-}
-
-const addPoint = async (token, code) => {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] })
-  const page = await browser.newPage()
-  await page.goto(`https://www.dan-on.com/jp-ja/my-danpoints?code=${code}`, {waitUntil: 'domcontentloaded'})
-  try {
-    await page.type('#signin-email', process.env.USER_NAME)
-    await page.type('#signin-password', process.env.PASSWORD)
-    await page.click('div.box__footer >  div.check-form > button[type="submit"]')
-  } catch (err) {
-    return replyText(token, err.name + ': ' + err.message)
-  }
-  await page.waitFor(8000)
-  const resultMessage = await page.content().then(content => {
-    let successFlag = /<header class="popin__header">/
-    let pointMatch = /<strong>(\d*)<\/strong> ポイント<\/span>/
-    if (successFlag.test(content)) {
-      return `現在のポイントは ${content.match(pointMatch)[1]} です。`
-    }
-    return 'ポイントが間違っているか、使用済みの可能性があります。'
-  })
-  await browser.close()
-  return replyText(token, resultMessage)
-}
-
-app.listen(PORT)
-console.log(`Server running at ${PORT}`)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT);
+console.log(`Server running at ${PORT}`);
